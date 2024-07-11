@@ -7,3 +7,8 @@ Projeto backend construído inicialmente acompanhando as aulas do nlw na trilha 
 O projeto visa ajudar o usuário a organizar viagens à trabalho ou lazer
 
 **Tecnologias utilizadas:** Java, Maven, Spring
+
+#### Features extras
+- [ ] Adicionar validação nos campos de data(atividade e período da viagem);
+- [ ] Extração do core das trips para dentro de uma classe Service;
+- [ ] Tratativas de erros;
