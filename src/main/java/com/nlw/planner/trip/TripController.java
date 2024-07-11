@@ -33,36 +33,33 @@ public class TripController {
     private LinkService linkService;
 
     @Autowired
-    private TripRepository repository;
+    private TripService tripService;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Trip> getTripDetails(@PathVariable UUID id){
+        Optional<Trip> trip = this.tripService.findTripById(id);
+
+        return trip.map(ResponseEntity::ok).orElseGet(()-> ResponseEntity.notFound().build());
+    }
 
     @PostMapping
     public ResponseEntity<TripCreateResponse> createTrip(@RequestBody TripRequestPayload payload){
-        Trip newTrip = new Trip(payload);
-
-        this.repository.save(newTrip);
-        System.out.println(payload.emails_to_invite());
+        Trip newTrip =  this.tripService.registerTrip(new Trip(payload));
         this.participantService.registerParticipantsToEvent(payload.emails_to_invite(), newTrip);
 
         return ResponseEntity.ok(new TripCreateResponse(newTrip.getId()));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Trip> getTripDetails(@PathVariable UUID id){
-        Optional<Trip> trip = this.repository.findById(id);
-
-        return trip.map(ResponseEntity::ok).orElseGet(()-> ResponseEntity.notFound().build());
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<Trip> updateTrip(@PathVariable UUID id, @RequestBody TripRequestPayload payload){
-        Optional<Trip> trip = this.repository.findById(id);
+        Optional<Trip> trip = this.tripService.findTripById(id);
 
         if (trip.isPresent()){
             Trip rawTrip = trip.get();//Traz o objeto Trip do optional
             rawTrip.setStartsAt(LocalDateTime.parse(payload.starts_at(), DateTimeFormatter.ISO_DATE_TIME));
             rawTrip.setEndAt(LocalDateTime.parse(payload.ends_at(), DateTimeFormatter.ISO_DATE_TIME));
             rawTrip.setDestination(payload.destination());
-            this.repository.save(rawTrip);
+            this.tripService.updateTrip(rawTrip);
             return ResponseEntity.ok(rawTrip);
         }
         return ResponseEntity.notFound().build();
@@ -70,21 +67,28 @@ public class TripController {
 
     @GetMapping("/{id}/confirm")
     public ResponseEntity<Trip> confirmTrip(@PathVariable UUID id){
-        Optional<Trip> trip = this.repository.findById(id);
+        Optional<Trip> trip = this.tripService.findTripById(id);
 
         if (trip.isPresent()){
-            Trip rawTrip = trip.get();//Traz o objeto Trip do optional
+            Trip rawTrip = trip.get();
             rawTrip.setIsConfirmed(true);
-            this.repository.save(rawTrip);
+            this.tripService.updateTrip(rawTrip);
             this.participantService.triggerConfirmationEmailToPaticipants(id);
             return ResponseEntity.ok(rawTrip);
         }
         return ResponseEntity.notFound().build();
     }
 
+    @GetMapping("/{id}/participants")
+    public ResponseEntity<List<ParticipantData>> getAllParticipants(@PathVariable UUID id){
+        List<ParticipantData> participants = this.participantService.getAllParticipantsFromEvent(id);
+
+        return ResponseEntity.ok(participants);
+    }
+
     @PostMapping("/{id}/invite")
     public ResponseEntity<ParticipantCreateResponse> inviteParticipant(@PathVariable UUID id,@RequestBody ParticipantRequestPayload payload){
-        Optional<Trip> trip = this.repository.findById(id);
+        Optional<Trip> trip = this.tripService.findTripById(id);
 
         if (trip.isPresent()){
             Trip rawTrip = trip.get();
@@ -98,27 +102,6 @@ public class TripController {
         return ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{id}/participants")
-    public ResponseEntity<List<ParticipantData>> getAllParticipants(@PathVariable UUID id){
-        List<ParticipantData> participants = this.participantService.getAllParticipantsFromEvent(id);
-
-        return ResponseEntity.ok(participants);
-    }
-
-    @PostMapping("/{id}/activities")
-    public ResponseEntity<ActivityResponse> registerActivity(@PathVariable UUID id, @RequestBody ActivityRequestPayload payload){
-        Optional<Trip> trip = this.repository.findById(id);
-
-        if (trip.isPresent()){
-            Trip rawTrip = trip.get();
-            System.out.println(payload);
-            ActivityResponse activityResponse = this.activityService.registerActivity(payload,rawTrip);
-
-            return ResponseEntity.ok(activityResponse);
-        }
-        return ResponseEntity.notFound().build();
-    }
-
     @GetMapping("/{id}/activities")
     public ResponseEntity<List<ActivityData>> getAllActivities(@PathVariable UUID id){
         List<ActivityData> activities = this.activityService.getAllActivitiesFromId(id);
@@ -126,16 +109,15 @@ public class TripController {
         return ResponseEntity.ok(activities);
     }
 
-    @PostMapping("/{id}/links")
-    public ResponseEntity<LinkResponse> registerLink(@PathVariable UUID id, @RequestBody LinkRequestPayload payload){
-        Optional<Trip> trip = this.repository.findById(id);
+    @PostMapping("/{id}/activities")
+    public ResponseEntity<ActivityResponse> registerActivity(@PathVariable UUID id, @RequestBody ActivityRequestPayload payload){
+        Optional<Trip> trip = this.tripService.findTripById(id);
 
         if (trip.isPresent()){
             Trip rawTrip = trip.get();
-            System.out.println(payload);
-            LinkResponse linkResponse = this.linkService.registerLink(payload,rawTrip);
+            ActivityResponse activityResponse = this.activityService.registerActivity(payload,rawTrip);
 
-            return ResponseEntity.ok(linkResponse);
+            return ResponseEntity.ok(activityResponse);
         }
         return ResponseEntity.notFound().build();
     }
@@ -145,6 +127,19 @@ public class TripController {
         List<LinkData> links = this.linkService.getAllLinksFromId(id);
 
         return ResponseEntity.ok(links);
+    }
+
+    @PostMapping("/{id}/links")
+    public ResponseEntity<LinkResponse> registerLink(@PathVariable UUID id, @RequestBody LinkRequestPayload payload){
+        Optional<Trip> trip = this.tripService.findTripById(id);
+
+        if (trip.isPresent()){
+            Trip rawTrip = trip.get();
+            LinkResponse linkResponse = this.linkService.registerLink(payload,rawTrip);
+
+            return ResponseEntity.ok(linkResponse);
+        }
+        return ResponseEntity.notFound().build();
     }
 
 }

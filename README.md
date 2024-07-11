@@ -10,5 +10,5 @@ O projeto visa ajudar o usuário a organizar viagens à trabalho ou lazer
 
 #### Features extras
 - [ ] Adicionar validação nos campos de data(atividade e período da viagem);
-- [ ] Extração do core das trips para dentro de uma classe Service;
+- [X] ~~Extração do core das trips para dentro de uma classe Service;~~
 - [ ] Tratativas de erros;
