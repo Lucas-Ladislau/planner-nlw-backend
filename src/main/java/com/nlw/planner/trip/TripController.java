@@ -4,6 +4,8 @@ import com.nlw.planner.activity.ActivityData;
 import com.nlw.planner.activity.ActivityRequestPayload;
 import com.nlw.planner.activity.ActivityResponse;
 import com.nlw.planner.activity.ActivityService;
+import com.nlw.planner.exception.DateErrorException;
+import com.nlw.planner.exception.TripNotFoundException;
 import com.nlw.planner.link.LinkData;
 import com.nlw.planner.link.LinkRequestPayload;
 import com.nlw.planner.link.LinkResponse;
@@ -39,12 +41,18 @@ public class TripController {
     public ResponseEntity<Trip> getTripDetails(@PathVariable UUID id){
         Optional<Trip> trip = this.tripService.findTripById(id);
 
-        return trip.map(ResponseEntity::ok).orElseGet(()-> ResponseEntity.notFound().build());
+        return trip.map(ResponseEntity::ok).orElseThrow(TripNotFoundException::new);
     }
 
     @PostMapping
     public ResponseEntity<TripCreateResponse> createTrip(@RequestBody TripRequestPayload payload){
-        Trip newTrip =  this.tripService.registerTrip(new Trip(payload));
+        Trip  newTrip = new Trip(payload);
+        if(newTrip.getEndAt().isBefore(newTrip.getStartsAt())){
+            throw new DateErrorException("A data de térmno deve ser maior que a data de início");
+        } else if (newTrip.getStartsAt().isBefore(LocalDateTime.now())) {
+            throw new DateErrorException("A data de início não pode estar no passado");
+        }
+        this.tripService.registerTrip(newTrip);
         this.participantService.registerParticipantsToEvent(payload.emails_to_invite(), newTrip);
 
         return ResponseEntity.ok(new TripCreateResponse(newTrip.getId()));
@@ -55,14 +63,20 @@ public class TripController {
         Optional<Trip> trip = this.tripService.findTripById(id);
 
         if (trip.isPresent()){
-            Trip rawTrip = trip.get();//Traz o objeto Trip do optional
+            Trip rawTrip = trip.get();
             rawTrip.setStartsAt(LocalDateTime.parse(payload.starts_at(), DateTimeFormatter.ISO_DATE_TIME));
             rawTrip.setEndAt(LocalDateTime.parse(payload.ends_at(), DateTimeFormatter.ISO_DATE_TIME));
+            if(rawTrip.getEndAt().isBefore(rawTrip.getStartsAt())){
+                throw new DateErrorException("A data de térmno deve ser maior que a data de início");
+            } else if (rawTrip.getStartsAt().isBefore(LocalDateTime.now())) {
+                throw new DateErrorException("A data de início não pode estar no passado");
+            }
             rawTrip.setDestination(payload.destination());
             this.tripService.updateTrip(rawTrip);
             return ResponseEntity.ok(rawTrip);
+        }else{
+            throw new TripNotFoundException();
         }
-        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/confirm")
@@ -75,8 +89,9 @@ public class TripController {
             this.tripService.updateTrip(rawTrip);
             this.participantService.triggerConfirmationEmailToPaticipants(id);
             return ResponseEntity.ok(rawTrip);
+        }else{
+            throw new TripNotFoundException();
         }
-        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/participants")
@@ -98,8 +113,9 @@ public class TripController {
             if(rawTrip.getIsConfirmed()) this.participantService.triggerConfirmationEmailToPaticipant(payload.email());
 
             return ResponseEntity.ok(participantResponse);
+        }else{
+            throw new TripNotFoundException();
         }
-        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/activities")
@@ -118,8 +134,9 @@ public class TripController {
             ActivityResponse activityResponse = this.activityService.registerActivity(payload,rawTrip);
 
             return ResponseEntity.ok(activityResponse);
+        }else{
+            throw new TripNotFoundException();
         }
-        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/links")
@@ -138,8 +155,9 @@ public class TripController {
             LinkResponse linkResponse = this.linkService.registerLink(payload,rawTrip);
 
             return ResponseEntity.ok(linkResponse);
+        }else{
+            throw new TripNotFoundException();
         }
-        return ResponseEntity.notFound().build();
     }
 
 }
