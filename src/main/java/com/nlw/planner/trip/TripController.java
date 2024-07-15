@@ -1,9 +1,6 @@
 package com.nlw.planner.trip;
 
-import com.nlw.planner.activity.ActivityData;
-import com.nlw.planner.activity.ActivityRequestPayload;
-import com.nlw.planner.activity.ActivityResponse;
-import com.nlw.planner.activity.ActivityService;
+import com.nlw.planner.activity.*;
 import com.nlw.planner.exception.DateErrorException;
 import com.nlw.planner.exception.TripNotFoundException;
 import com.nlw.planner.link.LinkData;
@@ -131,8 +128,11 @@ public class TripController {
 
         if (trip.isPresent()){
             Trip rawTrip = trip.get();
-            ActivityResponse activityResponse = this.activityService.registerActivity(payload,rawTrip);
-
+            Activity activity = new Activity(payload.title(), payload.occurs_at(), rawTrip);
+            if(activity.getOccursAt().isBefore(rawTrip.getStartsAt()) || activity.getOccursAt().isAfter(rawTrip.getEndAt()) ){
+                throw new DateErrorException("A data da atividade deve estar entre o período da trip");
+            }
+            ActivityResponse activityResponse = this.activityService.registerActivity(activity);
             return ResponseEntity.ok(activityResponse);
         }else{
             throw new TripNotFoundException();

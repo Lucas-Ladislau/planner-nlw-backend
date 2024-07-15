@@ -14,9 +14,7 @@ public class ActivityService {
     @Autowired
     private ActivityRepository repository;
 
-    public ActivityResponse registerActivity(ActivityRequestPayload payload, Trip trip){
-        Activity activity = new Activity(payload.title(), payload.occurs_at(), trip);
-
+    public ActivityResponse registerActivity(Activity activity){
         this.repository.save(activity);
 
         return new ActivityResponse(activity.getId());
