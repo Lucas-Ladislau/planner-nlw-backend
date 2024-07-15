@@ -9,8 +9,12 @@ O projeto visa ajudar o usuário a organizar viagens à trabalho ou lazer
 **Tecnologias utilizadas:** Java, Maven, Spring
 
 #### Features extras
-- [ ] Adicionar validação nos campos de data(atividade e período da viagem);
+- [X] ~~Adicionar validação nos campos de data(atividade e período da viagem)~~;
 - [X] ~~Extração do core das trips para dentro de uma classe Service;~~
 - [X] ~~Tratativas de erros~~;
+
+#### Novos aprendizados com o projeto
+* Uso de records(Principalmente para DTO's)
+* Tratamento de exceções usando o spring
 
 [Documentação Api](https://nlw-journey.apidocumentation.com/reference)
